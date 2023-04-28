@@ -1,14 +1,10 @@
 #include "stdafx.h"
 #include "MyEngine.h"
-#include "Window.h"
-#include "GraphicsEngine.h"
 
 void MyEngine::Run() {
-	Window window;
-	window.Initalize("Title", 1280, 720);
 	
-	GraphicsEngine graphicsEngine;
-	graphicsEngine.Initalize();
+	window.Initalize(kWindowTitle, kClientWidth, kClientHeight);
+	graphicsEngine.Initalize(window.GetHWND(), kClientWidth, kClientHeight);
 	
 	window.Show();
 
