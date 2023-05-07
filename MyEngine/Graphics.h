@@ -23,7 +23,7 @@ private:
 	ComPtr<ID3D12Device5> m_device;
 	ComPtr<ID3D12CommandQueue> m_commandQueue;
 	ComPtr<ID3D12GraphicsCommandList4> m_commandList;
-	std::array<ComPtr<ID3D12CommandAllocator>, kSwapChainBufferCount> m_commandAllocators;
+	ComPtr<ID3D12CommandAllocator> m_commandAllocator;
 	ComPtr<ID3D12Fence> m_fence;
 	uint64_t m_fenceValue = 0;
 	HANDLE m_fenceEvent = nullptr;

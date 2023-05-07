@@ -31,7 +31,7 @@ void Graphics::CreateDevice() {
 		debugController->Release();
 	}
 #endif
-	
+
 	HRESULT hr = S_FALSE;
 
 	// DXGIファクトリーの生成
@@ -114,24 +114,22 @@ void Graphics::CreateCommand() {
 	// コマンドキューを生成
 	D3D12_COMMAND_QUEUE_DESC commandQueueDesc{};
 	hr = m_device->CreateCommandQueue(
-		&commandQueueDesc, 
+		&commandQueueDesc,
 		IID_PPV_ARGS(&m_commandQueue));
 	assert(SUCCEEDED(hr));
 
 	// コマンドアロケータを生成
-	for (auto& itr : m_commandAllocators) {
-		hr = m_device->CreateCommandAllocator(
-			D3D12_COMMAND_LIST_TYPE_DIRECT, 
-			IID_PPV_ARGS(&itr));
-		assert(SUCCEEDED(hr));
-	}
+	hr = m_device->CreateCommandAllocator(
+		D3D12_COMMAND_LIST_TYPE_DIRECT,
+		IID_PPV_ARGS(&m_commandAllocator));
+	assert(SUCCEEDED(hr));
 
 	// コマンドリストを生成
 	hr = m_device->CreateCommandList(
-		0, 
-		D3D12_COMMAND_LIST_TYPE_DIRECT, 
-		m_commandAllocators[0].Get(), 
-		nullptr, 
+		0,
+		D3D12_COMMAND_LIST_TYPE_DIRECT,
+		m_commandAllocator.Get(),
+		nullptr,
 		IID_PPV_ARGS(&m_commandList));
 	assert(SUCCEEDED(hr));
 }
@@ -139,7 +137,7 @@ void Graphics::CreateCommand() {
 void Graphics::CreateFence() {
 	// フェンスを生成
 	HRESULT hr = m_device->CreateFence(
-		m_fenceValue, 
+		m_fenceValue,
 		D3D12_FENCE_FLAG_NONE,
 		IID_PPV_ARGS(&m_fence));
 	assert(SUCCEEDED(hr));
@@ -159,15 +157,15 @@ void Graphics::CreateSwapChain() {
 	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;	// 描画ターゲットとして利用する
 	swapChainDesc.BufferCount = kSwapChainBufferCount;
 	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;	// モニタに移したら、中身を破棄
-	
+
 	ComPtr<IDXGISwapChain1> swapChain1;
 	// スワップチェーンを生成
 	hr = m_dxgiFactory->CreateSwapChainForHwnd(
-		m_commandQueue.Get(), 
-		m_hwnd, 
-		&swapChainDesc, 
-		nullptr, 
-		nullptr, 
+		m_commandQueue.Get(),
+		m_hwnd,
+		&swapChainDesc,
+		nullptr,
+		nullptr,
 		&swapChain1);
 	assert(SUCCEEDED(hr));
 
@@ -182,7 +180,7 @@ void Graphics::CreateDescriptorHeaps() {
 	rtvDescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	rtvDescriptorHeapDesc.NumDescriptors = kSwapChainBufferCount;
 	hr = m_device->CreateDescriptorHeap(
-		&rtvDescriptorHeapDesc, 
+		&rtvDescriptorHeapDesc,
 		IID_PPV_ARGS(&m_rtvDescriptorHeap));
 	assert(SUCCEEDED(hr));
 
@@ -244,7 +242,7 @@ void Graphics::CreateResources() {
 	dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 	m_device->CreateDepthStencilView(
-		m_depthStencilResource.Get(), 
-		&dsvDesc, 
+		m_depthStencilResource.Get(),
+		&dsvDesc,
 		m_dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 }
