@@ -1,6 +1,7 @@
 #pragma once
 #include "Window.h"
 #include "Graphics.h"
+#include "ImGuiManager.h"
 
 namespace MyEngine {
 	void Run();
@@ -10,6 +11,7 @@ namespace MyEngine {
 	const uint32_t kClientHeight = 720;
 	
 	static Window window;
-	static Graphics graphicsEngine;
+	static Graphics graphics;
+	static ImGuiManager imguiManager;
 };
 

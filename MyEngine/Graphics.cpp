@@ -3,9 +3,9 @@
 #include "Debug.h"
 
 void Graphics::Initalize(const HWND& hwnd, uint32_t clientWidth, uint32_t clientHeight) {
-	m_hwnd = hwnd;
-	m_swapChainResourceWidth = clientWidth;
-	m_swapChainResourceHeight = clientHeight;
+	hwnd_ = hwnd;
+	swapChainResourceWidth_ = clientWidth;
+	swapChainResourceHeight_ = clientHeight;
 
 	CreateDevice();
 	CreateCommand();
@@ -16,6 +16,26 @@ void Graphics::Initalize(const HWND& hwnd, uint32_t clientWidth, uint32_t client
 }
 
 void Graphics::Finalize() {
+}
+
+void Graphics::SubmitCommandList() {
+	commandList_->Close();
+	ID3D12CommandList* ppCmdList[] = { commandList_.Get() };
+	commandQueue_->ExecuteCommandLists(_countof(ppCmdList), ppCmdList);
+	++fenceValue_;
+	commandQueue_->Signal(fence_.Get(), fenceValue_);
+}
+
+void Graphics::WaitForCommandList() {
+	if (fence_->GetCompletedValue() < fenceValue_) {
+		fence_->SetEventOnCompletion(fenceValue_, fenceEvent_);
+		WaitForSingleObject(fenceEvent_, INFINITE);
+	}
+}
+
+void Graphics::ResetCommandList() {
+	commandAllocator_->Reset();
+	commandList_->Reset(commandAllocator_.Get(), nullptr);
 }
 
 void Graphics::CreateDevice() {
@@ -35,7 +55,7 @@ void Graphics::CreateDevice() {
 	HRESULT hr = S_FALSE;
 
 	// DXGIファクトリーの生成
-	hr = CreateDXGIFactory(IID_PPV_ARGS(&m_dxgiFactory));
+	hr = CreateDXGIFactory(IID_PPV_ARGS(&dxgiFactory_));
 	assert(SUCCEEDED(hr));
 
 	// 使用するアダプタ用の変数
@@ -43,7 +63,7 @@ void Graphics::CreateDevice() {
 
 	// 良い順にアダプターを頼む
 	for (uint32_t i = 0;
-		m_dxgiFactory->EnumAdapterByGpuPreference(i, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&useAdapter)) != DXGI_ERROR_NOT_FOUND;
+		dxgiFactory_->EnumAdapterByGpuPreference(i, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&useAdapter)) != DXGI_ERROR_NOT_FOUND;
 		++i) {
 		// アダプター情報を取得
 		DXGI_ADAPTER_DESC3 adapterDesc{};
@@ -68,7 +88,7 @@ void Graphics::CreateDevice() {
 	// 高い順に生成できるか試していく
 	for (size_t i = 0; i < _countof(featureLevels); ++i) {
 		// 採用したアダプターデバイスを生成
-		hr = D3D12CreateDevice(useAdapter, featureLevels[i], IID_PPV_ARGS(&m_device));
+		hr = D3D12CreateDevice(useAdapter, featureLevels[i], IID_PPV_ARGS(&device_));
 		// 指定した機能レベルでデバイスが生成できたかを確認
 		if (SUCCEEDED(hr)) {
 			// 生成できたのでログ出力を行ってループを抜ける
@@ -76,14 +96,14 @@ void Graphics::CreateDevice() {
 			break;
 		}
 	}
-	assert(m_device != nullptr);
+	assert(device_ != nullptr);
 	useAdapter->Release();
 	Debug::Log("Complete create D3D12Device!!!\n"); // 初期化完了のログを出す
 
 #ifdef _DEBUG
 	// デバッグ時のみ
 	ID3D12InfoQueue* infoQueue = nullptr;
-	if (SUCCEEDED(m_device->QueryInterface(IID_PPV_ARGS(&infoQueue)))) {
+	if (SUCCEEDED(device_->QueryInterface(IID_PPV_ARGS(&infoQueue)))) {
 		// やばいエラーの時に止まる
 		infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, true);
 		// エラーの時に止まる
@@ -113,45 +133,45 @@ void Graphics::CreateCommand() {
 	HRESULT hr = S_FALSE;
 	// コマンドキューを生成
 	D3D12_COMMAND_QUEUE_DESC commandQueueDesc{};
-	hr = m_device->CreateCommandQueue(
+	hr = device_->CreateCommandQueue(
 		&commandQueueDesc,
-		IID_PPV_ARGS(&m_commandQueue));
+		IID_PPV_ARGS(&commandQueue_));
 	assert(SUCCEEDED(hr));
 
 	// コマンドアロケータを生成
-	hr = m_device->CreateCommandAllocator(
+	hr = device_->CreateCommandAllocator(
 		D3D12_COMMAND_LIST_TYPE_DIRECT,
-		IID_PPV_ARGS(&m_commandAllocator));
+		IID_PPV_ARGS(&commandAllocator_));
 	assert(SUCCEEDED(hr));
 
 	// コマンドリストを生成
-	hr = m_device->CreateCommandList(
+	hr = device_->CreateCommandList(
 		0,
 		D3D12_COMMAND_LIST_TYPE_DIRECT,
-		m_commandAllocator.Get(),
+		commandAllocator_.Get(),
 		nullptr,
-		IID_PPV_ARGS(&m_commandList));
+		IID_PPV_ARGS(&commandList_));
 	assert(SUCCEEDED(hr));
 }
 
 void Graphics::CreateFence() {
 	// フェンスを生成
-	HRESULT hr = m_device->CreateFence(
-		m_fenceValue,
+	HRESULT hr = device_->CreateFence(
+		fenceValue_,
 		D3D12_FENCE_FLAG_NONE,
-		IID_PPV_ARGS(&m_fence));
+		IID_PPV_ARGS(&fence_));
 	assert(SUCCEEDED(hr));
 
-	m_fenceEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-	assert(m_fenceEvent != nullptr);
+	fenceEvent_ = CreateEvent(NULL, FALSE, FALSE, NULL);
+	assert(fenceEvent_ != nullptr);
 }
 
 void Graphics::CreateSwapChain() {
 	HRESULT hr = S_FALSE;
 	// スワップチェーンの設定
 	DXGI_SWAP_CHAIN_DESC1 swapChainDesc{};
-	swapChainDesc.Width = m_swapChainResourceWidth;		// 画面幅
-	swapChainDesc.Height = m_swapChainResourceHeight;	// 画面高
+	swapChainDesc.Width = swapChainResourceWidth_;		// 画面幅
+	swapChainDesc.Height = swapChainResourceHeight_;	// 画面高
 	swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;	// 色の形式
 	swapChainDesc.SampleDesc.Count = 1;					// マルチサンプル市内
 	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;	// 描画ターゲットとして利用する
@@ -160,16 +180,16 @@ void Graphics::CreateSwapChain() {
 
 	ComPtr<IDXGISwapChain1> swapChain1;
 	// スワップチェーンを生成
-	hr = m_dxgiFactory->CreateSwapChainForHwnd(
-		m_commandQueue.Get(),
-		m_hwnd,
+	hr = dxgiFactory_->CreateSwapChainForHwnd(
+		commandQueue_.Get(),
+		hwnd_,
 		&swapChainDesc,
 		nullptr,
 		nullptr,
 		&swapChain1);
 	assert(SUCCEEDED(hr));
 
-	hr = swapChain1.As(&m_swapChain);
+	hr = swapChain1.As(&swapChain_);
 	assert(SUCCEEDED(hr));
 }
 
@@ -179,17 +199,17 @@ void Graphics::CreateDescriptorHeaps() {
 	D3D12_DESCRIPTOR_HEAP_DESC rtvDescriptorHeapDesc{};
 	rtvDescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	rtvDescriptorHeapDesc.NumDescriptors = kSwapChainBufferCount;
-	hr = m_device->CreateDescriptorHeap(
+	hr = device_->CreateDescriptorHeap(
 		&rtvDescriptorHeapDesc,
-		IID_PPV_ARGS(&m_rtvDescriptorHeap));
+		IID_PPV_ARGS(&rtvDescriptorHeap_));
 	assert(SUCCEEDED(hr));
 
 	D3D12_DESCRIPTOR_HEAP_DESC dsvDescriptorHeapDesc{};
 	dsvDescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 	dsvDescriptorHeapDesc.NumDescriptors = 1;
-	hr = m_device->CreateDescriptorHeap(
+	hr = device_->CreateDescriptorHeap(
 		&dsvDescriptorHeapDesc,
-		IID_PPV_ARGS(&m_dsvDescriptorHeap));
+		IID_PPV_ARGS(&dsvDescriptorHeap_));
 	assert(SUCCEEDED(hr));
 }
 
@@ -198,26 +218,26 @@ void Graphics::CreateResources() {
 	// SwapChainResourceの生成とRTVの生成
 	for (uint32_t i = 0; i < kSwapChainBufferCount; ++i) {
 		// SwapChainからResourceを引っ張ってくる
-		hr = m_swapChain->GetBuffer(i, IID_PPV_ARGS(&m_swapChainResources[i]));
+		hr = swapChain_->GetBuffer(i, IID_PPV_ARGS(&swapChainResources_[i]));
 		assert(SUCCEEDED(hr));
 		// RTVの設定
 		D3D12_RENDER_TARGET_VIEW_DESC rtvDesc{};
 		rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 		rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 		// ディスクリプタの先頭を取得
-		m_rtvHandles[i] = m_rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+		rtvHandles_[i] = rtvDescriptorHeap_->GetCPUDescriptorHandleForHeapStart();
 		// ディスクリプタハンドルをずらす
-		m_rtvHandles[i].ptr += static_cast<size_t>(i) * m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+		rtvHandles_[i].ptr += static_cast<size_t>(i) * device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 		// RTVを生成
-		m_device->CreateRenderTargetView(m_swapChainResources[i].Get(), &rtvDesc, m_rtvHandles[i]);
+		device_->CreateRenderTargetView(swapChainResources_[i].Get(), &rtvDesc, rtvHandles_[i]);
 	}
 
 	D3D12_HEAP_PROPERTIES heapProperties{};
 	heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
 
 	D3D12_RESOURCE_DESC depthStencilResourceDesc{};
-	depthStencilResourceDesc.Width = m_swapChainResourceWidth;
-	depthStencilResourceDesc.Height = m_swapChainResourceHeight;
+	depthStencilResourceDesc.Width = swapChainResourceWidth_;
+	depthStencilResourceDesc.Height = swapChainResourceHeight_;
 	depthStencilResourceDesc.MipLevels = 1;
 	depthStencilResourceDesc.DepthOrArraySize = 1;
 	depthStencilResourceDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
@@ -229,20 +249,20 @@ void Graphics::CreateResources() {
 	depthClearValue.DepthStencil.Depth = 1.0f;
 	depthClearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 
-	hr = m_device->CreateCommittedResource(
+	hr = device_->CreateCommittedResource(
 		&heapProperties,
 		D3D12_HEAP_FLAG_NONE,
 		&depthStencilResourceDesc,
 		D3D12_RESOURCE_STATE_DEPTH_WRITE,
 		&depthClearValue,
-		IID_PPV_ARGS(&m_depthStencilResource));
+		IID_PPV_ARGS(&depthStencilResource_));
 	assert(SUCCEEDED(hr));
 
 	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
 	dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-	m_device->CreateDepthStencilView(
-		m_depthStencilResource.Get(),
+	device_->CreateDepthStencilView(
+		depthStencilResource_.Get(),
 		&dsvDesc,
-		m_dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+		dsvDescriptorHeap_->GetCPUDescriptorHandleForHeapStart());
 }

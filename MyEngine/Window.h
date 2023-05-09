@@ -8,13 +8,13 @@ public:
 	void Show();
 	void Close();
 
-	inline const HWND& GetHWND() const { return m_hwnd; }
+	inline const HWND& GetHWND() const { return hwnd_; }
 
 private:
-	HWND m_hwnd = nullptr;
-	WNDCLASS m_windowClass{};
-	uint32_t m_width = 0;
-	uint32_t m_height = 0;
-	std::string m_name;
+	HWND hwnd_ = nullptr;
+	WNDCLASS windowClass_{};
+	uint32_t width_ = 0;
+	uint32_t height_ = 0;
+	std::string name_;
 };
 

@@ -21,9 +21,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
 }
 
 void Window::Initalize(const std::string& name, uint32_t clientWidth, uint32_t clientHeight) {
-	assert(!m_hwnd);
+	assert(!hwnd_);
 	
-	m_name = name;
+	name_ = name;
 	std::wstring wname = String::Convert(name);
 
 	// ウィンドウクラスを生成
@@ -45,18 +45,18 @@ void Window::Initalize(const std::string& name, uint32_t clientWidth, uint32_t c
 	// クライアント領域を元に実際のサイズにwrcを変更してもらう
 	AdjustWindowRect(&wrc, WS_OVERLAPPEDWINDOW, false);
 
-	m_width = wrc.right - wrc.left;
-	m_height = wrc.bottom - wrc.top;
+	width_ = wrc.right - wrc.left;
+	height_ = wrc.bottom - wrc.top;
 
 	// ウィンドウの生成
-	m_hwnd = CreateWindow(
+	hwnd_ = CreateWindow(
 		wc.lpszClassName,		// 利用するクラス名
 		wname.c_str(),				// タイトルバーの文字
 		WS_OVERLAPPEDWINDOW,	// よく見るウィンドウスタイル
 		CW_USEDEFAULT,			// 表示X座標（WindowsOSに任せる）
 		CW_USEDEFAULT,			// 表示Y座標（WindowsOSに任せる）
-		m_width,	// ウィンドウ横幅
-		m_height,	// ウィンドウ縦幅
+		width_,	// ウィンドウ横幅
+		height_,	// ウィンドウ縦幅
 		nullptr,				// 親ウィンドウハンドル
 		nullptr,				// メニューハンドル
 		wc.hInstance,			// インスタンスハンドル
@@ -64,13 +64,13 @@ void Window::Initalize(const std::string& name, uint32_t clientWidth, uint32_t c
 }
 
 void Window::Show() {
-	assert(m_hwnd);
-	ShowWindow(m_hwnd, SW_SHOW);
+	assert(hwnd_);
+	ShowWindow(hwnd_, SW_SHOW);
 	Debug::Log("Show window\n");
 }
 
 void Window::Close() {
-	assert(m_hwnd);
-	CloseWindow(m_hwnd);
+	assert(hwnd_);
+	CloseWindow(hwnd_);
 	Debug::Log("Close window\n");
 }

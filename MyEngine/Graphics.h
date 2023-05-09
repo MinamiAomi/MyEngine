@@ -7,6 +7,16 @@ public:
 	void Initalize(const HWND& hwnd, uint32_t clientWidth, uint32_t clientHeight);
 	void Finalize();
 
+	void SubmitCommandList();
+	void WaitForCommandList();
+	void ResetCommandList();
+
+	void SetRenderTarget();
+
+
+	inline ID3D12Device5* GetDevice() { return device_.Get(); }
+	inline ID3D12GraphicsCommandList4* GetCommandList() { return commandList_.Get(); }
+
 private:
 	template<class T>
 	using ComPtr = Microsoft::WRL::ComPtr<T>;
@@ -18,22 +28,22 @@ private:
 	void CreateDescriptorHeaps();
 	void CreateResources();
 
-	HWND m_hwnd = nullptr;
-	ComPtr<IDXGIFactory7> m_dxgiFactory;
-	ComPtr<ID3D12Device5> m_device;
-	ComPtr<ID3D12CommandQueue> m_commandQueue;
-	ComPtr<ID3D12GraphicsCommandList4> m_commandList;
-	ComPtr<ID3D12CommandAllocator> m_commandAllocator;
-	ComPtr<ID3D12Fence> m_fence;
-	uint64_t m_fenceValue = 0;
-	HANDLE m_fenceEvent = nullptr;
-	ComPtr<IDXGISwapChain4> m_swapChain;
-	uint32_t m_swapChainResourceWidth = 0;
-	uint32_t m_swapChainResourceHeight = 0;
-	ComPtr<ID3D12DescriptorHeap> m_rtvDescriptorHeap;
-	std::array<ComPtr<ID3D12Resource>, kSwapChainBufferCount> m_swapChainResources;
-	std::array<D3D12_CPU_DESCRIPTOR_HANDLE, kSwapChainBufferCount> m_rtvHandles = {};
-	ComPtr<ID3D12DescriptorHeap> m_dsvDescriptorHeap;
-	ComPtr<ID3D12Resource> m_depthStencilResource;
+	HWND hwnd_ = nullptr;
+	ComPtr<IDXGIFactory7> dxgiFactory_;
+	ComPtr<ID3D12Device5> device_;
+	ComPtr<ID3D12CommandQueue> commandQueue_;
+	ComPtr<ID3D12GraphicsCommandList4> commandList_;
+	ComPtr<ID3D12CommandAllocator> commandAllocator_;
+	ComPtr<ID3D12Fence> fence_;
+	uint64_t fenceValue_ = 0;
+	HANDLE fenceEvent_ = nullptr;
+	ComPtr<IDXGISwapChain4> swapChain_;
+	uint32_t swapChainResourceWidth_ = 0;
+	uint32_t swapChainResourceHeight_ = 0;
+	ComPtr<ID3D12DescriptorHeap> rtvDescriptorHeap_;
+	std::array<ComPtr<ID3D12Resource>, kSwapChainBufferCount> swapChainResources_;
+	std::array<D3D12_CPU_DESCRIPTOR_HANDLE, kSwapChainBufferCount> rtvHandles_ = {};
+	ComPtr<ID3D12DescriptorHeap> dsvDescriptorHeap_;
+	ComPtr<ID3D12Resource> depthStencilResource_;
 };
 

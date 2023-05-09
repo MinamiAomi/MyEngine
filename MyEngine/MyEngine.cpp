@@ -4,7 +4,8 @@
 void MyEngine::Run() {
 	
 	window.Initalize(kWindowTitle, kClientWidth, kClientHeight);
-	graphicsEngine.Initalize(window.GetHWND(), kClientWidth, kClientHeight);
+	graphics.Initalize(window.GetHWND(), kClientWidth, kClientHeight);
+	imguiManager.Initalize(window.GetHWND(), graphics.GetDevice(), Graphics::kSwapChainBufferCount);
 	
 	window.Show();
 
@@ -17,10 +18,14 @@ void MyEngine::Run() {
 			DispatchMessage(&msg);
 		}
 		else {
+			imguiManager.BeginFrame();
 			
+
+
 		}
 	}
 
-	graphicsEngine.Finalize();
+	imguiManager.Finalize();
+	graphics.Finalize();
 	window.Close();
 }

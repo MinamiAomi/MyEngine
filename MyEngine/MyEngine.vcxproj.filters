@@ -43,7 +43,9 @@
     <ClCompile Include="Graphics.cpp">
       <Filter>Source File</Filter>
     </ClCompile>
-    <ClCompile Include="ImGuiManager.cpp" />
+    <ClCompile Include="ImGuiManager.cpp">
+      <Filter>Source File</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -88,7 +90,9 @@
     <ClInclude Include="MyEngine.h">
       <Filter>Header File</Filter>
     </ClInclude>
-    <ClInclude Include="ImGuiManager.h" />
+    <ClInclude Include="ImGuiManager.h">
+      <Filter>Header File</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source File">
